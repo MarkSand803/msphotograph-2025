@@ -94,7 +94,7 @@ let portfolio = [
     
   ]
 
-app.get("/api/houses", (req, res)=>{
+app.get("/api/portfolio", (req, res)=>{
     res.send(portfolio);
 });
 
