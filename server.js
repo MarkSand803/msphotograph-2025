@@ -22,10 +22,6 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
 let portfolio = [
   { "_id": 1, "title": "Wedding", "location": "Charleston, SC", "name": "John & Emily Johnson", "date": "2024-06-15", "img_name": "images/p4wedding.jpg", "details": ["Beach wedding", "Golden hour photography", "Candid shots"] },
   { "_id": 2, "title": "Graduation", "location": "Columbia, SC", "name": "Gabe Clark", "date": "2024-06-02", "img_name": "images/p4graduation.jpg", "details": ["Cap & Gown", "Campus shoot", "Family portraits"] },
@@ -40,28 +36,6 @@ let portfolio = [
 
 app.get("/api/portfolio", (req, res) => {
   res.send(portfolio);
-});
-
-app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
-  const result = validatePhoto(req.body);
-
-  if (result.error) {
-    console.log("I have an error:", result.error.details[0].message);
-    return res.status(400).send(result.error.details[0].message);
-  }
-
-  const newPhoto = {
-    _id: portfolio.length + 1,
-    title: req.body.title,
-    location: req.body.location,
-    name: req.body.name,
-    date: req.body.date,
-    img_name: req.file ? `images/${req.file.originalname}` : '',
-    details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
-  };
-
-  portfolio.push(newPhoto);
-  res.status(200).send(newPhoto);
 });
 
 app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
@@ -114,11 +88,6 @@ const validatePhoto = (photo) => {
 
   return schema.validate(photo);
 };
-
-// This is the crucial part for handling client-side routes (keep this)
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
 
 app.listen(3001, () => {
   console.log("i'm Listening on port 3001");
