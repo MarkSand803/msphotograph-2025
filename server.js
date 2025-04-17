@@ -3,7 +3,7 @@ const cors = require("cors");
 const multer = require("multer");
 const Joi = require("joi");
 const app = express();
-const path = require("path");
+// Removed: const path = require("path");
 
 app.use(express.static("public"));
 app.use(express.json());
@@ -11,9 +11,7 @@ app.use(cors());
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = path.join(__dirname, "public", "images");
-    require("fs").mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
+    cb(null, "./public/images/"); // Changed path style
   },
   filename: (req, file, cb) => {
     cb(null, file.originalname);
@@ -21,6 +19,10 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage: storage });
+
+app.get("/", (req, res) => {
+  res.sendFile(__dirname + "/index.html"); // Changed path style
+});
 
 let portfolio = [
   { "_id": 1, "title": "Wedding", "location": "Charleston, SC", "name": "John & Emily Johnson", "date": "2024-06-15", "img_name": "images/p4wedding.jpg", "details": ["Beach wedding", "Golden hour photography", "Candid shots"] },
@@ -38,42 +40,72 @@ app.get("/api/portfolio", (req, res) => {
   res.send(portfolio);
 });
 
-app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
-  const photoId = parseInt(req.params.id);
-  const photoToUpdate = portfolio.find(photo => photo._id === photoId);
+app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
+  const result = validatePhoto(req.body);
 
-  if (!photoToUpdate) {
-    return res.status(404).send("The photo with the provided ID was not found");
+  if (result.error) {
+    console.log("I have an error"); // Changed console log style
+    res.status(400).send(result.error.details[0].message);
+    return; // Added return for consistency
+  }
+
+  const newPhoto = {
+    _id: portfolio.length, // Professor's code uses houses.length before incrementing
+    title: req.body.title,
+    location: req.body.location,
+    name: req.body.name,
+    date: req.body.date,
+    img_name: req.file ? req.file.originalname : '', // Removed 'images/' prefix here
+    details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
+  };
+
+  portfolio.push(newPhoto);
+  res.status(200).send(newPhoto);
+});
+
+app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
+  const photo = portfolio.find((p) => p._id === parseInt(req.params.id)); // Using 'p' as variable
+
+  if (!photo) {
+    res.status(404).send("The photo with the provided id was not found");
+    return;
   }
 
   const result = validatePhoto(req.body);
 
   if (result.error) {
-    return res.status(400).send(result.error.details[0].message);
+    res.status(400).send(result.error.details[0].message);
+    return;
   }
 
-  photoToUpdate.title = req.body.title;
-  photoToUpdate.location = req.body.location;
-  photoToUpdate.name = req.body.name;
-  photoToUpdate.date = req.body.date || "";
-  photoToUpdate.details = req.body.details ? req.body.details.split(',').map(item => item.trim()) : [];
+  photo.title = req.body.title;
+  photo.location = req.body.location;
+  photo.name = req.body.name;
+  photo.date = req.body.date || "";
+  photo.details = req.body.details ? req.body.details.split(',').map(item => item.trim()) : [];
   if (req.file) {
-    photoToUpdate.img_name = `images/${req.file.originalname}`;
+    photo.img_name = req.file.originalname; // Removed 'images/' prefix here
   }
 
-  res.status(200).send(photoToUpdate);
+  // Added the extra res.status(200).send(photo) line (typo in professor's PUT)
+  res.status(200).send(photo);
 });
 
 app.delete("/api/portfolio/:id", (req, res) => {
-  const photoId = parseInt(req.params.id);
-  const initialLength = portfolio.length;
-  portfolio = portfolio.filter(photo => photo._id !== photoId);
+  console.log("I'm trying to delete" + req.params.id);
+  const photo = portfolio.find((p) => p._id === parseInt(req.params.id)); // Using 'p' as variable
 
-  if (portfolio.length === initialLength) {
-    return res.status(404).send("The photo with the provided ID was not found");
+  if (!photo) {
+    console.log("Oh no i wasn't found");
+    res.status(404).send("The photo with the provided id was not found");
+    return;
   }
 
-  res.status(200).send({ message: "Photo deleted successfully" });
+  console.log("YAY You found me");
+  console.log("The photo you are deleting is " + photo.title);
+  const index = portfolio.indexOf(photo);
+  portfolio.splice(index, 1);
+  res.status(200).send(photo);
 });
 
 const validatePhoto = (photo) => {
@@ -90,5 +122,5 @@ const validatePhoto = (photo) => {
 };
 
 app.listen(3001, () => {
-  console.log("i'm Listening on port 3001");
+  console.log("I'm listening"); // Changed console log style
 });
