@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+  res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 let portfolio = [
@@ -64,6 +64,44 @@ app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
   res.status(200).send(newPhoto);
 });
 
+app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
+  const photoId = parseInt(req.params.id);
+  const photoToUpdate = portfolio.find(photo => photo._id === photoId);
+
+  if (!photoToUpdate) {
+    return res.status(404).send("The photo with the provided ID was not found");
+  }
+
+  const result = validatePhoto(req.body);
+
+  if (result.error) {
+    return res.status(400).send(result.error.details[0].message);
+  }
+
+  photoToUpdate.title = req.body.title;
+  photoToUpdate.location = req.body.location;
+  photoToUpdate.name = req.body.name;
+  photoToUpdate.date = req.body.date || "";
+  photoToUpdate.details = req.body.details ? req.body.details.split(',').map(item => item.trim()) : [];
+  if (req.file) {
+    photoToUpdate.img_name = `images/${req.file.originalname}`;
+  }
+
+  res.status(200).send(photoToUpdate);
+});
+
+app.delete("/api/portfolio/:id", (req, res) => {
+  const photoId = parseInt(req.params.id);
+  const initialLength = portfolio.length;
+  portfolio = portfolio.filter(photo => photo._id !== photoId);
+
+  if (portfolio.length === initialLength) {
+    return res.status(404).send("The photo with the provided ID was not found");
+  }
+
+  res.status(200).send({ message: "Photo deleted successfully" });
+});
+
 const validatePhoto = (photo) => {
   const schema = Joi.object({
     _id: Joi.allow(""),
@@ -76,6 +114,11 @@ const validatePhoto = (photo) => {
 
   return schema.validate(photo);
 };
+
+// This is the crucial part for handling client-side routes (keep this)
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 app.listen(3001, () => {
   console.log("i'm Listening on port 3001");
