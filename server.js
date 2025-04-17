@@ -3,15 +3,13 @@ const cors = require("cors");
 const multer = require("multer");
 const Joi = require("joi");
 const app = express();
-// Removed: const path = require("path");
-
 app.use(express.static("public"));
 app.use(express.json());
 app.use(cors());
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./public/images/"); // Changed path style
+    cb(null, "./public/images/");
   },
   filename: (req, file, cb) => {
     cb(null, file.originalname);
@@ -21,7 +19,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html"); // Changed path style
+  res.sendFile(__dirname + "/index.html");
 });
 
 let portfolio = [
@@ -44,18 +42,18 @@ app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
   const result = validatePhoto(req.body);
 
   if (result.error) {
-    console.log("I have an error"); // Changed console log style
+    console.log("I have an error");
     res.status(400).send(result.error.details[0].message);
-    return; // Added return for consistency
+    return;
   }
 
   const newPhoto = {
-    _id: portfolio.length, // Professor's code uses houses.length before incrementing
+    _id: portfolio.length,
     title: req.body.title,
     location: req.body.location,
     name: req.body.name,
     date: req.body.date,
-    img_name: req.file ? req.file.originalname : '', // Removed 'images/' prefix here
+    img_name: req.file ? req.file.originalname : '',
     details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
   };
 
@@ -64,7 +62,7 @@ app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
 });
 
 app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
-  const photo = portfolio.find((p) => p._id === parseInt(req.params.id)); // Using 'p' as variable
+  const photo = portfolio.find((p) => p._id === parseInt(req.params.id));
 
   if (!photo) {
     res.status(404).send("The photo with the provided id was not found");
@@ -84,16 +82,15 @@ app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
   photo.date = req.body.date || "";
   photo.details = req.body.details ? req.body.details.split(',').map(item => item.trim()) : [];
   if (req.file) {
-    photo.img_name = req.file.originalname; // Removed 'images/' prefix here
+    photo.img_name = req.file.originalname;
   }
 
-  // Added the extra res.status(200).send(photo) line (typo in professor's PUT)
   res.status(200).send(photo);
 });
 
 app.delete("/api/portfolio/:id", (req, res) => {
   console.log("I'm trying to delete" + req.params.id);
-  const photo = portfolio.find((p) => p._id === parseInt(req.params.id)); // Using 'p' as variable
+  const photo = portfolio.find((p) => p._id === parseInt(req.params.id));
 
   if (!photo) {
     console.log("Oh no i wasn't found");
@@ -122,5 +119,5 @@ const validatePhoto = (photo) => {
 };
 
 app.listen(3001, () => {
-  console.log("I'm listening"); // Changed console log style
+  console.log("I'm listening");
 });
