@@ -2,18 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const Joi = require("joi");
-const path = require("path"); // Import the 'path' module
 const app = express();
 app.use(express.static("public"));
 app.use(express.json());
 app.use(cors());
 
-// Construct the upload directory path
-const uploadDir = path.join(__dirname, "public", "images");
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir); // Use the 'uploadDir' constant
+    cb(null, "./public/images/");
   },
   filename: (req, file, cb) => {
     cb(null, file.originalname);
@@ -22,8 +18,8 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/index.html");
+app.get("/",(req, res)=>{
+  res.sendFile(__dirname+"/index.html");
 });
 
 let portfolio = [
@@ -38,17 +34,16 @@ let portfolio = [
   { "_id": 9, "title": "Furman University", "location": "Greenville, SC", "name": "Furman University", "date": "2023-07-05", "img_name": "images/p4furman.jpg", "details": ["Skyline", "Landscape", "University showcases"] }
 ];
 
-app.get("/api/portfolio", (req, res) => {
+app.get("/api/portfolio", (req, res)=>{
   res.send(portfolio);
 });
 
-app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
+app.post("/api/portfolio", upload.single("img_name"), (req,res)=>{
   const result = validatePhoto(req.body);
 
-  if (result.error) {
+  if(result.error){
     console.log("I have an error");
-    res.status(400).send(result.error.details[0].message);
-    return;
+    return res.status(400).send(result.error.details[0].message);
   }
 
   const newPhoto = {
@@ -65,19 +60,17 @@ app.post("/api/portfolio", upload.single("img_name"), (req, res) => {
   res.status(200).send(newPhoto);
 });
 
-app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
-  const photo = portfolio.find((p) => p._id === parseInt(req.params.id));
+app.put("/api/portfolio/:id", upload.single("img_name"),(req,res)=>{
+  const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
 
-  if (!photo) {
-    res.status(404).send("The photo with the provided id was not found");
-    return;
+  if(!photo){
+    return res.status(404).send("The photo with the provided id was not found");
   }
 
   const result = validatePhoto(req.body);
 
-  if (result.error) {
-    res.status(400).send(result.error.details[0].message);
-    return;
+  if(result.error){
+    return res.status(400).send(result.error.details[0].message);
   }
 
   photo.title = req.body.title;
@@ -92,26 +85,23 @@ app.put("/api/portfolio/:id", upload.single("img_name"), (req, res) => {
   res.status(200).send(photo);
 });
 
-app.delete("/api/portfolio/:id", (req, res) => {
+app.delete("/api/portfolio/:id",(req,res)=>{
   console.log("I'm trying to delete" + req.params.id);
-  const photo = portfolio.find((p) => p._id === parseInt(req.params.id));
+  const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
 
-  if (!photo) {
-    console.log("Oh no i wasn't found");
-    res.status(404).send("The photo with the provided id was not found");
-    return;
+  if(!photo){
+    return res.status(404).send("The photo with the provided id was not found");
   }
-
   console.log("YAY You found me");
   console.log("The photo you are deleting is " + photo.title);
   const index = portfolio.indexOf(photo);
-  portfolio.splice(index, 1);
+  portfolio.splice(index,1);
   res.status(200).send(photo);
 });
 
 const validatePhoto = (photo) => {
   const schema = Joi.object({
-    _id: Joi.allow(""),
+    _id:Joi.allow(""),
     title: Joi.string().min(3).required(),
     location: Joi.string().required(),
     name: Joi.string().required(),
@@ -122,6 +112,6 @@ const validatePhoto = (photo) => {
   return schema.validate(photo);
 };
 
-app.listen(3001, () => {
+app.listen(3001, ()=>{
   console.log("I'm listening");
 });
