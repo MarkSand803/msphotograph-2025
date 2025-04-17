@@ -19,6 +19,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.get("/",(req, res)=>{
+  console.log("hi");
   res.sendFile(__dirname+"/index.html");
 });
 
@@ -35,6 +36,7 @@ let portfolio = [
 ];
 
 app.get("/api/portfolio", (req, res)=>{
+  console.log("in the portfolio get request");
   res.send(portfolio);
 });
 
@@ -112,6 +114,6 @@ const validatePhoto = (photo) => {
   return schema.validate(photo);
 };
 
-app.listen(3001, ()=>{
+app.listen(3002, ()=>{
   console.log("I'm listening");
 });
