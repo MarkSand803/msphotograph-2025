@@ -2,14 +2,18 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const Joi = require("joi");
+const path = require("path"); // Import the 'path' module
 const app = express();
 app.use(express.static("public"));
 app.use(express.json());
 app.use(cors());
 
+// Construct the upload directory path
+const uploadDir = path.join(__dirname, "public", "images");
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, "./public/images/");
+    cb(null, uploadDir); // Use the 'uploadDir' constant
   },
   filename: (req, file, cb) => {
     cb(null, file.originalname);
