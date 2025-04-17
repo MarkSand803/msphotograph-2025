@@ -60,7 +60,7 @@ app.post("/api/portfolio", upload.single("img_name"), (req,res)=>{
   res.status(200).send(newPhoto);
 });
 
-app.put("/api/portfolio/:_id", upload.single("img_name"),(req,res)=>{
+app.put("/api/portfolio/:id", upload.single("img_name"),(req,res)=>{
   const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
 
   if(!photo){
@@ -85,7 +85,7 @@ app.put("/api/portfolio/:_id", upload.single("img_name"),(req,res)=>{
   res.status(200).send(photo);
 });
 
-app.delete("/api/portfolio/:_id",(req,res)=>{
+app.delete("/api/portfolio/:id",(req,res)=>{
   console.log("I'm trying to delete" + req.params.id);
   const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
 
