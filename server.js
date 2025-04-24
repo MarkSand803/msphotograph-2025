@@ -2,118 +2,142 @@ const express = require("express");
 const cors = require("cors");
 const multer = require("multer");
 const Joi = require("joi");
+const mongoose = require("mongoose");
 const app = express();
 app.use(express.static("public"));
 app.use(express.json());
 app.use(cors());
 
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "./public/images/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, file.originalname);
-  },
+    destination: (req, file, cb) => {
+        cb(null, "./public/images/");
+    },
+    filename: (req, file, cb) => {
+        cb(null, file.originalname); // Keeping original name for simplicity, professor might rename
+    },
 });
 
 const upload = multer({ storage: storage });
 
-app.get("/",(req, res)=>{
-  console.log("hi");
-  res.sendFile(__dirname+"/index.html");
+mongoose
+    .connect("mongodb+srv://MarkSand803:Willet172005@cluster0.9lv5qlv.mongodb.net/") // Using your professor's connection string
+    .then(() => {
+        console.log("connected to mongodb");
+    })
+    .catch((error) => {
+        console.log("couldn't connect to mongodb", error);
+    });
+
+const photoSchema = new mongoose.Schema({ // Keeping your schema structure but renaming for clarity
+    _id: String,
+    title: String,
+    location: String,
+    name: String,
+    date: Date,
+    img_name: String, // Changed from File to String to store filename
+    details: [String] // Assuming details is an array of strings
 });
 
-let portfolio = [
-  { "_id": 1, "title": "Wedding", "location": "Charleston, SC", "name": "John & Emily Johnson", "date": "2024-06-15", "img_name": "images/p4wedding.jpg", "details": ["Beach wedding", "Golden hour photography", "Candid shots"] },
-  { "_id": 2, "title": "Graduation", "location": "Columbia, SC", "name": "Gabe Clark", "date": "2024-06-02", "img_name": "images/p4graduation.jpg", "details": ["Cap & Gown", "Campus shoot", "Family portraits"] },
-  { "_id": 3, "title": "Family Session", "location": "Greenville, SC", "name": "The Thompson Family", "date": "2024-07-21", "img_name": "images/p4family.jpg", "details": ["Indoor shoot", "Candid moments", "Golden hour shots"] },
-  { "_id": 4, "title": "Engagement", "location": "Myrtle Beach, SC", "name": "Michael & Lisa", "date": "2024-08-03", "img_name": "images/p4engagement.jpg", "details": ["Nature", "Romantic poses", "Ring close-ups"] },
-  { "_id": 5, "title": "Birthday", "location": "Charlotte, NC", "name": "Tami’s 38th Birthday", "date": "2024-09-12", "img_name": "images/p4birthday.jpg", "details": ["Party decorations", "Cake cutting", "Candid guest shots"] },
-  { "_id": 6, "title": "Corporate Event", "location": "Atlanta, GA", "name": "Tech Conference 2024", "date": "2024-10-05", "img_name": "images/p4corporate.jpg", "details": ["Panel discussions", "Networking moments", "Product showcases"] },
-  { "_id": 7, "title": "Skyline", "location": "Chester, SC", "name": "Skyline 2024", "date": "2024-11-15", "img_name": "images/p4sky.jpg", "details": ["Skyline", "Country", "Landscape shot"] },
-  { "_id": 8, "title": "Prom", "location": "York, SC", "name": "Markael Prom Photos", "date": "2022-04-04", "img_name": "images/p4prom.JPG", "details": ["Prom event", "Family ", "Candid shots"] },
-  { "_id": 9, "title": "Furman University", "location": "Greenville, SC", "name": "Furman University", "date": "2023-07-05", "img_name": "images/p4furman.jpg", "details": ["Skyline", "Landscape", "University showcases"] }
-];
+const Photo = mongoose.model("Photo", photoSchema); // Renamed model to Photo to match your schema
 
-app.get("/api/portfolio", (req, res)=>{
-  console.log("in the portfolio get request");
-  res.send(portfolio);
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + "/index.html");
 });
 
-app.post("/api/portfolio", upload.single("img_name"), (req,res)=>{
-  const result = validatePhoto(req.body);
-
-  if(result.error){
-    console.log("I have an error");
-    return res.status(400).send(result.error.details[0].message);
-  }
-
-  const newPhoto = {
-    _id: portfolio.length,
-    title: req.body.title,
-    location: req.body.location,
-    name: req.body.name,
-    date: req.body.date,
-    img_name: req.file ? req.file.originalname : '',
-    details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
-  };
-
-  portfolio.push(newPhoto);
-  res.status(200).send(newPhoto);
+app.get("/api/portfolio", async (req, res) => { // Changed endpoint to /api/portfolio to reflect your data
+    try {
+        const photos = await Photo.find();
+        res.send(photos);
+    } catch (error) {
+        console.error("Error fetching photos:", error);
+        res.status(500).send("Error fetching data from the database.");
+    }
 });
 
-app.put("/api/portfolio/:id", upload.single("img_name"),(req,res)=>{
-  const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
+app.post("/api/portfolio", upload.single("img_name"), async (req, res) => { // Keep your image field name
+    const result = validatePhoto(req.body);
 
-  if(!photo){
-    return res.status(404).send("The photo with the provided id was not found");
-  }
+    if (result.error) {
+        console.log("I have an error");
+        return res.status(400).send(result.error.details[0].message);
+    }
 
-  const result = validatePhoto(req.body);
+    const newPhoto = new Photo({
+        _id: req.body._id || String(new mongoose.Types.ObjectId()), // Generate ObjectId if not provided
+        title: req.body.title,
+        location: req.body.location,
+        name: req.body.name,
+        date: req.body.date,
+        img_name: req.file ? req.file.originalname : '', // Keep original name for now
+        details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
+    });
 
-  if(result.error){
-    return res.status(400).send(result.error.details[0].message);
-  }
-
-  photo.title = req.body.title;
-  photo.location = req.body.location;
-  photo.name = req.body.name;
-  photo.date = req.body.date || "";
-  photo.details = req.body.details ? req.body.details.split(',').map(item => item.trim()) : [];
-  if (req.file) {
-    photo.img_name = req.file.originalname;
-  }
-
-  res.status(200).send(photo);
+    try {
+        const savedPhoto = await newPhoto.save();
+        res.status(200).send(savedPhoto);
+    } catch (error) {
+        console.error("Error saving photo:", error);
+        res.status(500).send("Error saving data to the database.");
+    }
 });
 
-app.delete("/api/portfolio/:id",(req,res)=>{
-  console.log("I'm trying to delete" + req.params.id);
-  const photo = portfolio.find((p)=>p._id===parseInt(req.params.id));
+app.put("/api/portfolio/:id", upload.single("img_name"), async (req, res) => {
+    const result = validatePhoto(req.body);
 
-  if(!photo){
-    return res.status(404).send("The photo with the provided id was not found");
-  }
-  console.log("YAY You found me");
-  console.log("The photo you are deleting is " + photo.title);
-  const index = portfolio.indexOf(photo);
-  portfolio.splice(index,1);
-  res.status(200).send(photo);
+    if (result.error) {
+        return res.status(400).send(result.error.details[0].message);
+    }
+
+    const fieldsToUpdate = {
+        title: req.body.title,
+        location: req.body.location,
+        name: req.body.name,
+        date: req.body.date || "",
+        details: req.body.details ? req.body.details.split(',').map(item => item.trim()) : [],
+    };
+
+    if (req.file) {
+        fieldsToUpdate.img_name = req.file.originalname; // Keep original name
+    }
+
+    try {
+        const updatedPhoto = await Photo.findByIdAndUpdate(req.params.id, fieldsToUpdate, { new: true });
+        if (!updatedPhoto) {
+            return res.status(404).send("The photo with the provided ID was not found.");
+        }
+        res.status(200).send(updatedPhoto);
+    } catch (error) {
+        console.error("Error updating photo:", error);
+        res.status(500).send("Error updating data in the database.");
+    }
+});
+
+app.delete("/api/portfolio/:id", async (req, res) => {
+    try {
+        const deletedPhoto = await Photo.findByIdAndDelete(req.params.id);
+        if (!deletedPhoto) {
+            return res.status(404).send("The photo with the provided ID was not found.");
+        }
+        res.status(200).send(deletedPhoto);
+    } catch (error) {
+        console.error("Error deleting photo:", error);
+        res.status(500).send("Error deleting data from the database.");
+    }
 });
 
 const validatePhoto = (photo) => {
-  const schema = Joi.object({
-    _id:Joi.allow(""),
-    title: Joi.string().min(3).required(),
-    location: Joi.string().required(),
-    name: Joi.string().required(),
-    date: Joi.string().allow(""),
-    details: Joi.string().allow(""),
-  });
+    const schema = Joi.object({
+        _id: Joi.string().allow(""), // Expecting string ID for MongoDB
+        title: Joi.string().min(3).required(),
+        location: Joi.string().required(),
+        name: Joi.string().required(),
+        date: Joi.string().allow(""),
+        details: Joi.string().allow(""),
+    });
 
-  return schema.validate(photo);
+    return schema.validate(photo);
 };
 
-app.listen(3002, ()=>{
-  console.log("I'm listening");
+app.listen(3001, () => { // Using your professor's port number
+    console.log("I'm listening on port 3001");
 });
